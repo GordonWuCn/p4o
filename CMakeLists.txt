@@ -304,6 +304,8 @@ if (ENABLE_GTESTS)
   add_subdirectory (test)
 endif ()
 
+add_subdirectory(backends/p4o)
+
 # IR Generation
 set_source_files_properties(${IR_GENERATOR} PROPERTIES GENERATED TRUE)
 
