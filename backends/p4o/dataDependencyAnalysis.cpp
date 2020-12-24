@@ -606,7 +606,7 @@ bool CollectTableInfo::preorder(const IR::P4Table* t) {
 }
 
 void CollectTableInfo::postorder(const IR::P4Program *){
-    // table_info->serialize(std::cout);
+    table_info->serialize(std::cout);
 }
 
 } //namespace P4O
