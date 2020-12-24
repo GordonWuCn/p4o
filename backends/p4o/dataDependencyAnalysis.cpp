@@ -155,6 +155,17 @@ bool ExpressionBreakdown::preorder(const IR::MethodCallExpression *mce){
                 read_list.insert(index);
                 write_list.insert(result);
             }
+            else if(em->method->getName() == "write"){
+                auto index = (*em->expr->arguments)[0]->expression;
+                auto value = (*em->expr->arguments)[1]->expression;
+                simple_expr_sanity(index);
+                read_list.insert(index);
+                simple_expr_sanity(value);
+                write_list.insert(value);
+            }
+            else{
+                BUG("not implemented");
+            }
         }
         else{
             BUG("not implemented");
@@ -595,7 +606,7 @@ bool CollectTableInfo::preorder(const IR::P4Table* t) {
 }
 
 void CollectTableInfo::postorder(const IR::P4Program *){
-    table_info->serialize(std::cout);
+    // table_info->serialize(std::cout);
 }
 
 } //namespace P4O
