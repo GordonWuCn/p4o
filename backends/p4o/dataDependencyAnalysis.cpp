@@ -93,6 +93,12 @@ bool DataDependencyAnalysis::preorder(const IR::IfStatement *i){
         sanity(i->ifFalse);
         visit(i->ifFalse);
     }
+    auto expr_bd = new ExpressionBreakdown(refMap, typeMap);
+    i->condition->apply(*expr_bd);
+    info->read_list.insert(
+        expr_bd->read_list.begin(), expr_bd->read_list.end());
+    info->write_list.insert(
+        expr_bd->write_list.begin(), expr_bd->write_list.end());
     return false;
 }
 
@@ -229,6 +235,12 @@ bool ExpressionBreakdown::preorder(const IR::Member *m){
 }
 bool ExpressionBreakdown::preorder(const IR::PathExpression *p){
     read_list.insert(p);
+    return false;
+}
+
+bool ExpressionBreakdown::preorder(const IR::LNot *lnot){
+    sanity(lnot->expr);
+    visit(lnot->expr);
     return false;
 }
 
@@ -505,6 +517,12 @@ has_dependency(const IR::Node *table1, const IR::Node *table2, Util::JsonArray *
 
 
 bool GenerateDependencyGraph::preorder(const IR::P4Program*){
+    // for(auto it: *dependency_map){
+    //     if(it.first->is<IR::IfStatement>()){
+    //         std::cerr << it.first << std::endl;
+    //         std::cerr << *it.second << std::endl;
+    //     }
+    // }
     DependencyInfo *top_info;
     auto top_info_res = orig_dependency_map->find(*top_level_block);
     if(top_info_res != orig_dependency_map->end()){

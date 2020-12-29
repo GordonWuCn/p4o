@@ -47,7 +47,6 @@ class DataDependencyAnalysis: public Inspector{
             n->is<IR::P4Table>() or
             n->is<IR::P4Action>() or
             n->is<IR::IfStatement>() or
-            n->is<IR::Operation_Binary>() or
             n->is<IR::MethodCallStatement>() or
             n->is<IR::AssignmentStatement>()
         ) return;
@@ -93,7 +92,8 @@ class ExpressionBreakdown: public Inspector{
             n->is<IR::MethodCallExpression>() or
             n->is<IR::Constant>() or
             n->is<IR::Member>() or
-            n->is<IR::PathExpression>()
+            n->is<IR::PathExpression>() or
+            n->is<IR::LNot>()
         ) return;
         std::cerr << n->node_type_name() << std::endl;
         BUG("not implemented");
@@ -112,6 +112,7 @@ public:
     bool preorder(const IR::Constant *) override;
     bool preorder(const IR::Member *) override;
     bool preorder(const IR::PathExpression *) override;
+    bool preorder(const IR::LNot *) override;
 
 };
 
