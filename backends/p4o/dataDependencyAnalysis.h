@@ -158,6 +158,25 @@ public:
         
 };
 
+class CollectRuntimeName: public Inspector{
+    Util::JsonObject *table_info;
+    Util::JsonObject *table_translation;
+    Util::JsonObject *action_translation;
+public:
+    CollectRuntimeName(
+        Util::JsonObject *table_info
+    ): 
+        table_info(table_info)
+        {
+            table_translation = new Util::JsonObject();
+            action_translation = new Util::JsonObject();
+            table_info->emplace("table_runtime", table_translation);
+            table_info->emplace("action_runtime", action_translation);
+        }
+    bool preorder(const IR::P4Table* ) override;
+    bool preorder(const IR::P4Action* ) override;
+};
+
 class CollectTableInfo: public Inspector{
     Util::JsonObject *table_info;
     BMV2::V1ProgramStructure *v1arch;
@@ -194,6 +213,7 @@ public:
         passes.push_back(new LiftDependencyToTopLevel(&analysis->dependency_map));
         passes.push_back(new GenerateDependencyGraph(
             &analysis->dependency_map, orig_map, lift->top_level_block, &table_info));
+        passes.push_back(new CollectRuntimeName(&table_info));
         passes.push_back(new CollectTableInfo(&table_info, v1arch));
         
     }

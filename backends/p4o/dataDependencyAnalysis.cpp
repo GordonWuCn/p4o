@@ -587,6 +587,40 @@ bool GenerateDependencyGraph::preorder(const IR::P4Program*){
 }
 
 
+bool CollectRuntimeName::preorder(const IR::P4Table* table){
+    auto annt = table->annotations->annotations[0];
+    if(annt->name == annt->nameAnnotation){
+        auto runtime_name = std::string(annt->expr[0]->to<IR::StringLiteral>()->value.c_str());
+        std::stringstream ss(runtime_name);
+        std::string token;
+        std::vector<std::string> cont;
+        while (std::getline(ss, token, '.')) {
+            cont.push_back(token);
+        }
+        auto real_table_name = cont.back();
+        table_translation->emplace(cstring(real_table_name), table->name);
+    }
+    return false;
+}
+
+
+bool CollectRuntimeName::preorder(const IR::P4Action* action){
+    auto annt = action->annotations->annotations[0];
+    if(annt->name == annt->nameAnnotation){
+        auto runtime_name = std::string(annt->expr[0]->to<IR::StringLiteral>()->value.c_str());
+        std::stringstream ss(runtime_name);
+        std::string token;
+        std::vector<std::string> cont;
+        while (std::getline(ss, token, '.')) {
+            cont.push_back(token);
+        }
+        auto real_action_name = cont.back();
+        action_translation->emplace(cstring(real_action_name), action->name);
+    }
+    return false;
+}
+
+
 bool CollectTableInfo::preorder(const IR::P4Control* c){
     if(c->name != v1arch->ingress->name and c->name != v1arch->egress->name){
         return false;
