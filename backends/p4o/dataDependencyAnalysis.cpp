@@ -658,7 +658,102 @@ bool CollectTableInfo::preorder(const IR::P4Table* t) {
 }
 
 void CollectTableInfo::postorder(const IR::P4Program *){
-    table_info->serialize(std::cout);
+    // table_info->serialize(std::cout);
+}
+
+bool CollectHeaderAccessInfo::preorder(const IR::P4Parser*){
+    return true;
+}
+bool CollectHeaderAccessInfo::preorder(const IR::SelectExpression* select){
+    if(findContext<IR::P4Parser>()){
+        header_accessed_in_parser.append(select->select->components);
+    }
+    else{
+        BUG("select expression outside parser");
+    }
+    return false;
+}
+
+bool CollectHeaderAccessInfo::preorder(const IR::Member* member){
+    if(findContext<IR::P4Control>()){
+        auto type = typeMap->getType(member->expr);
+        if(type->is<IR::Type_Header>()){
+            if(findContext<IR::MethodCallStatement>()){
+                if(member->member == "setValid"){
+                    header_set_valid.push_back(member->expr);
+                }
+                else if(member->member == "setInvalid"){
+                    header_set_invalid.push_back(member->expr);
+                }
+            }
+        }
+    }
+    return true;
+} 
+
+bool ExtractHeaderAccess::preorder(const IR::P4Program* ){
+    DependencyInfo *top_info;
+    auto top_info_res = dependency_map->find(*top_block);
+    if(top_info_res != dependency_map->end()){
+        top_info = top_info_res->second;
+    }
+    else{
+        BUG("top block not found");
+    }
+    for(auto header : header_access->header_accessed_in_parser){
+        for(auto var : top_info->write_list){
+            if(header->equiv(*var)){
+                if(auto member = header->to<IR::Member>()){
+                    auto field = member->member;
+                    if(auto header_member = member->expr->to<IR::Member>()){
+                        auto header_name = header_member->member;
+                        auto obj = new Util::JsonObject;
+                        obj->emplace("header_name", header_name.name);
+                        obj->emplace("field_name", field.name);
+                        header_field_accessed->append(obj);
+                        // std::cerr << header_name << std::endl;
+                    }
+                    else BUG("header not in xx.xx.xx format");
+                }
+                else{
+                    BUG("header not in xx.xx.xx format");
+                }
+            }
+        }
+    }
+    for(auto header: header_access->header_set_valid){
+        for(auto var: top_info->write_list){
+            if(auto member = var->to<IR::Member>()){
+                if(header->equiv(*member->expr)){
+                    auto field = member->member;
+                    if(auto header_member = member->expr->to<IR::Member>()){
+                        auto header_name = header_member->member;
+                        auto obj = new Util::JsonObject;
+                        obj->emplace("header_name", header_name.name);
+                        obj->emplace("field_name", field.name);
+                        header_field_accessed->append(obj);
+                    }
+                    else BUG("header not in xx.xx.xx format");
+                }
+            }
+        }
+        if(auto member = header->to<IR::Member>()){
+            header_set_valid->append(member->member.name);
+        }
+        else BUG("header not in xx.xx format");
+    }
+
+    for(auto header: header_access->header_set_invalid){
+        if(auto member = header->to<IR::Member>()){
+            header_set_invalid->append(member->member.name);
+        }
+        else BUG("header not in xx.xx format");
+    }
+    return false;   
+}
+
+bool CollectTempVariableAccess::preorder(const IR::P4Program*){
+    return false;
 }
 
 } //namespace P4O

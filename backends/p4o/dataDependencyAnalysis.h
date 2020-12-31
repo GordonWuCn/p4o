@@ -197,6 +197,87 @@ public:
 };
 
 
+class CollectHeaderAccessInfo: public Inspector{
+    P4::ReferenceMap *refMap;
+    P4::TypeMap *typeMap;
+public:
+    IR::Vector<IR::Expression> header_accessed_in_parser;
+    IR::Vector<IR::Expression> header_set_valid;
+    IR::Vector<IR::Expression> header_set_invalid;
+    CollectHeaderAccessInfo(
+        P4::ReferenceMap *refMap,
+        P4::TypeMap *typeMap
+    ):refMap(refMap), typeMap(typeMap){}
+    bool preorder(const IR::P4Parser*) override;
+    bool preorder(const IR::SelectExpression*) override;
+    bool preorder(const IR::Member*) override;
+};
+
+class ExtractHeaderAccess: public Inspector{
+    std::map<const IR::Node *, P4O::DependencyInfo *> *dependency_map;
+    CollectHeaderAccessInfo * header_access;
+    const IR::Node ** top_block;
+    Util::JsonObject *table_info;
+    Util::JsonArray * header_field_accessed;
+    Util::JsonArray * header_set_valid;
+    Util::JsonArray * header_set_invalid;
+public:
+    ExtractHeaderAccess(
+        std::map<const IR::Node *, P4O::DependencyInfo *> *dependency_map,
+        CollectHeaderAccessInfo* header_access, 
+        const IR::Node ** top_block,
+        Util::JsonObject *table_info): 
+        dependency_map(dependency_map),
+        header_access(header_access),
+        top_block(top_block),
+        table_info(table_info){
+            header_field_accessed = new Util::JsonArray;
+            header_set_valid = new Util::JsonArray;
+            header_set_invalid = new Util::JsonArray;
+            table_info->emplace("header_field_accessed", header_field_accessed);
+            table_info->emplace("header_set_valid", header_set_valid);
+            table_info->emplace("header_set_invalid", header_set_invalid);
+        }
+    bool preorder(const IR::P4Program*) override;
+};
+
+class CollectTempVariableAccess: public Inspector{
+    std::map<const IR::Node *, P4O::DependencyInfo *> *new_dependency_map;
+    Util::JsonObject *table_info;
+    Util::JsonObject *temp_variable_access;
+public:
+    CollectTempVariableAccess(
+        std::map<const IR::Node *, P4O::DependencyInfo *> *new_dependency_map,
+        Util::JsonObject *table_info
+    ):new_dependency_map(new_dependency_map), table_info(table_info){
+        temp_variable_access = new Util::JsonObject;
+        table_info->emplace("temp_variable_access", temp_variable_access);
+    }
+    bool preorder(const IR::P4Program*) override;
+
+};
+
+
+class CollectReadWriteInfo: public PassManager{
+    CollectHeaderAccessInfo *header_access;
+    Util::JsonObject *table_info;
+    const IR::Node ** top_block;
+public:
+    CollectReadWriteInfo(
+        P4::ReferenceMap *refMap,
+        P4::TypeMap *typeMap,
+        Util::JsonObject *table_info,
+        std::map<const IR::Node *, P4O::DependencyInfo *> *dependency_map,
+        const IR::Node ** top_block,
+        std::map<const IR::Node *, P4O::DependencyInfo *> *new_dependency_map
+    ): table_info(table_info){
+        header_access = new CollectHeaderAccessInfo(refMap, typeMap);
+        passes.push_back(header_access);
+        passes.push_back(new ExtractHeaderAccess(
+            dependency_map, header_access, top_block, table_info));
+    }
+};
+
 class TableDependencyAnalysis: public PassManager{
     Util::JsonObject table_info;
 public:
@@ -214,8 +295,8 @@ public:
         passes.push_back(new GenerateDependencyGraph(
             &analysis->dependency_map, orig_map, lift->top_level_block, &table_info));
         passes.push_back(new CollectRuntimeName(&table_info));
+        passes.push_back(new CollectReadWriteInfo(refMap, typeMap, &table_info,  orig_map, lift->top_level_block, &analysis->dependency_map));
         passes.push_back(new CollectTableInfo(&table_info, v1arch));
-        
     }
 
 };
