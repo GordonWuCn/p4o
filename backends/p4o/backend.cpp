@@ -59,8 +59,8 @@ namespace P4O{
         new_program->apply(*analysis_new);
 
         // P4::ToP4 top4(&std::cerr, false);
-        // JSONGenerator json_generator(std::cerr, false);
-        // json_generator << new_program << std::endl;
+        JSONGenerator json_generator(std::cerr, false);
+        json_generator << new_program << std::endl;
         // new_program->apply(top4);
         
     }

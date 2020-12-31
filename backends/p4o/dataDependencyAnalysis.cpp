@@ -658,7 +658,7 @@ bool CollectTableInfo::preorder(const IR::P4Table* t) {
 }
 
 void CollectTableInfo::postorder(const IR::P4Program *){
-    // table_info->serialize(std::cout);
+    table_info->serialize(std::cout);
 }
 
 bool CollectHeaderAccessInfo::preorder(const IR::P4Parser*){
@@ -753,6 +753,59 @@ bool ExtractHeaderAccess::preorder(const IR::P4Program* ){
 }
 
 bool CollectTempVariableAccess::preorder(const IR::P4Program*){
+    auto metadata = v1arch->ingress->type->applyParams->parameters[1]->type->to<IR::Type_Name>()->path->name.name;
+    for(auto it: *new_dependency_map){
+        if(auto if_stmt = it.first->to<IR::IfStatement>()){
+            auto table_name = if_stmt->ifTrue->to<IR::MethodCallStatement>()->methodCall->method->to<IR::Member>()->expr->to<IR::PathExpression>()->path->name.name;
+            auto obj = new Util::JsonObject;
+            auto read_list = new Util::JsonArray;
+            obj->emplace("read_list", read_list);
+            for(auto node: it.second->read_list){
+                if(auto member = node->to<IR::Member>()){
+                    if(auto meta_name = member->expr->to<IR::PathExpression>()){
+                        auto decl = refMap->getDeclaration(meta_name->path);
+                        if(auto param = decl->to<IR::Parameter>()){
+                            if(param->type->to<IR::Type_Name>()->path->name.name == metadata){
+                                read_list->append(member->member.name);
+                            }
+                            else{
+                                std::cerr << param << std::endl;
+                                BUG("Not implemented");
+                            }
+                        }
+                        else{
+                            std::cerr << decl << std::endl;
+                            BUG("not implemented");
+                        }
+                    }
+                }
+            }
+            auto write_list = new Util::JsonArray;
+            obj->emplace("write_list", write_list);
+            for(auto node: it.second->write_list){
+                if(auto member = node->to<IR::Member>()){
+                    if(auto meta_name = member->expr->to<IR::PathExpression>()){
+                        auto decl = refMap->getDeclaration(meta_name->path);
+                        if(auto param = decl->to<IR::Parameter>()){
+                            if(param->type->to<IR::Type_Name>()->path->name.name == metadata){
+                                write_list->append(member->member.name);
+                            }
+                            else{
+                                std::cerr << param << std::endl;
+                                BUG("Not implemented");
+                            }
+                        }
+                        else{
+                            std::cerr << decl << std::endl;
+                            BUG("not implemented");
+                        }
+                    }
+                }
+            }
+            temp_variable_access->emplace(table_name, obj);
+        }
+    }
+
     return false;
 }
 

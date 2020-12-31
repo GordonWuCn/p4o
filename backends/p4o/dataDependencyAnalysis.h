@@ -245,11 +245,22 @@ class CollectTempVariableAccess: public Inspector{
     std::map<const IR::Node *, P4O::DependencyInfo *> *new_dependency_map;
     Util::JsonObject *table_info;
     Util::JsonObject *temp_variable_access;
+    P4::ReferenceMap *refMap;
+    P4::TypeMap *typeMap;
+    BMV2::V1ProgramStructure*v1arch;
 public:
     CollectTempVariableAccess(
         std::map<const IR::Node *, P4O::DependencyInfo *> *new_dependency_map,
-        Util::JsonObject *table_info
-    ):new_dependency_map(new_dependency_map), table_info(table_info){
+        Util::JsonObject *table_info,
+        P4::ReferenceMap *refMap,
+        P4::TypeMap *typeMap,
+        BMV2::V1ProgramStructure*v1arch
+    ): new_dependency_map(new_dependency_map), 
+       table_info(table_info),
+       refMap(refMap),
+       typeMap(typeMap),
+       v1arch(v1arch)
+       {
         temp_variable_access = new Util::JsonObject;
         table_info->emplace("temp_variable_access", temp_variable_access);
     }
@@ -269,12 +280,15 @@ public:
         Util::JsonObject *table_info,
         std::map<const IR::Node *, P4O::DependencyInfo *> *dependency_map,
         const IR::Node ** top_block,
-        std::map<const IR::Node *, P4O::DependencyInfo *> *new_dependency_map
+        std::map<const IR::Node *, P4O::DependencyInfo *> *new_dependency_map,
+        BMV2::V1ProgramStructure*v1arch
     ): table_info(table_info){
         header_access = new CollectHeaderAccessInfo(refMap, typeMap);
         passes.push_back(header_access);
         passes.push_back(new ExtractHeaderAccess(
             dependency_map, header_access, top_block, table_info));
+        passes.push_back(new CollectTempVariableAccess(
+            new_dependency_map, table_info, refMap, typeMap, v1arch));
     }
 };
 
@@ -295,7 +309,7 @@ public:
         passes.push_back(new GenerateDependencyGraph(
             &analysis->dependency_map, orig_map, lift->top_level_block, &table_info));
         passes.push_back(new CollectRuntimeName(&table_info));
-        passes.push_back(new CollectReadWriteInfo(refMap, typeMap, &table_info,  orig_map, lift->top_level_block, &analysis->dependency_map));
+        passes.push_back(new CollectReadWriteInfo(refMap, typeMap, &table_info,  orig_map, lift->top_level_block, &analysis->dependency_map, v1arch));
         passes.push_back(new CollectTableInfo(&table_info, v1arch));
     }
 
