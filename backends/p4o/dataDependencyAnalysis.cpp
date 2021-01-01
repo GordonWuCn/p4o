@@ -710,6 +710,8 @@ bool ExtractHeaderAccess::preorder(const IR::P4Program* ){
                         auto obj = new Util::JsonObject;
                         obj->emplace("header_name", header_name.name);
                         obj->emplace("field_name", field.name);
+                        auto bits = header->type->to<IR::Type_Bits>();
+                        obj->emplace("bits", bits->size);
                         header_field_accessed->append(obj);
                         // std::cerr << header_name << std::endl;
                     }
@@ -731,6 +733,8 @@ bool ExtractHeaderAccess::preorder(const IR::P4Program* ){
                         auto obj = new Util::JsonObject;
                         obj->emplace("header_name", header_name.name);
                         obj->emplace("field_name", field.name);
+                        auto bits = member->type->to<IR::Type_Bits>();
+                        obj->emplace("bits", bits->size);
                         header_field_accessed->append(obj);
                     }
                     else BUG("header not in xx.xx.xx format");
