@@ -770,7 +770,11 @@ bool CollectTempVariableAccess::preorder(const IR::P4Program*){
                         auto decl = refMap->getDeclaration(meta_name->path);
                         if(auto param = decl->to<IR::Parameter>()){
                             if(param->type->to<IR::Type_Name>()->path->name.name == metadata){
-                                read_list->append(member->member.name);
+                                auto metadata_obj = new Util::JsonObject;
+                                metadata_obj->emplace("metadata_name", member->member.name);
+                                int size = member->type->to<IR::Type_Bits>()->size;
+                                metadata_obj->emplace("metadata_size", size);
+                                read_list->append(metadata_obj);
                             }
                             else{
                                 std::cerr << param << std::endl;
@@ -792,7 +796,11 @@ bool CollectTempVariableAccess::preorder(const IR::P4Program*){
                         auto decl = refMap->getDeclaration(meta_name->path);
                         if(auto param = decl->to<IR::Parameter>()){
                             if(param->type->to<IR::Type_Name>()->path->name.name == metadata){
-                                write_list->append(member->member.name);
+                                auto metadata_obj = new Util::JsonObject;
+                                metadata_obj->emplace("metadata_name", member->member.name);
+                                int size = member->type->to<IR::Type_Bits>()->size;
+                                metadata_obj->emplace("metadata_size", size);
+                                write_list->append(metadata_obj);
                             }
                             else{
                                 std::cerr << param << std::endl;
