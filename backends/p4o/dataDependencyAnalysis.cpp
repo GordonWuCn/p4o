@@ -215,6 +215,15 @@ bool ExpressionBreakdown::preorder(const IR::MethodCallExpression *mce){
         else if(ef->method->getName() == "route_to_program"){
             
         }
+        else if(ef->method->getName() == "harmony_e2e_clone_to_program"){
+            
+        }
+        else if(ef->method->getName() == "harmony_e2e_clone_by_ip"){
+            
+        }
+        else if(ef->method->getName() == "harmony_is_normal"){
+            
+        }
         else{
             std::cerr << mce << std::endl;
             BUG("not implemented");
@@ -629,6 +638,14 @@ bool CollectTableInfo::preorder(const IR::P4Control* c){
 }
 bool CollectTableInfo::preorder(const IR::P4Table* t) {
     auto size = t->properties->getProperty(t->properties->sizePropertyName);
+    auto control = findContext<IR::P4Control>();
+    cstring control_name;
+    if(control->name.name == v1arch->ingress->name.name){
+        control_name = "ingress";
+    }
+    else{
+        control_name = "egress";
+    }
 
     if(size) {
         if(auto value = size->value->to<IR::ExpressionValue>()){
@@ -636,6 +653,7 @@ bool CollectTableInfo::preorder(const IR::P4Table* t) {
                 auto obj = new Util::JsonObject();
                 obj->emplace("id", t->name.name);
                 obj->emplace("size", s->value);
+                obj->emplace("control", control_name);
                 info->append(obj);
             }
             else{
@@ -652,6 +670,7 @@ bool CollectTableInfo::preorder(const IR::P4Table* t) {
         auto obj = new Util::JsonObject();
         obj->emplace("id", t->name.name);
         obj->emplace("size", 0);
+        obj->emplace("control", control_name);
         info->append(obj);
     }
     return false;

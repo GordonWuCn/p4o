@@ -49,7 +49,7 @@ limitations under the License.
 #ifndef _V1_MODEL_P4_
 #define _V1_MODEL_P4_
 
-#include "core.p4"
+// #include "core.p4"
 
 #ifndef V1MODEL_VERSION
 #define V1MODEL_VERSION 20180101
