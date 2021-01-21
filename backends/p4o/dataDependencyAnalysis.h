@@ -292,6 +292,21 @@ public:
     }
 };
 
+class CollectEgressCloneReservationInfo: public Inspector{
+    Util::JsonObject *table_info;
+    Util::JsonArray *egress_clone_reserved;
+    bool collected;
+public:
+    CollectEgressCloneReservationInfo(Util::JsonObject *table_info):
+    table_info(table_info){
+        egress_clone_reserved = new Util::JsonArray;
+        table_info->emplace("egress_clone_reserved", egress_clone_reserved);
+        collected = false;
+    }
+    bool preorder(const IR::MethodCallStatement*) override;
+
+};
+
 class TableDependencyAnalysis: public PassManager{
     Util::JsonObject table_info;
 public:
@@ -310,6 +325,8 @@ public:
             &analysis->dependency_map, orig_map, lift->top_level_block, &table_info));
         passes.push_back(new CollectRuntimeName(&table_info));
         passes.push_back(new CollectReadWriteInfo(refMap, typeMap, &table_info,  orig_map, lift->top_level_block, &analysis->dependency_map, v1arch));
+        
+        passes.push_back(new CollectEgressCloneReservationInfo(&table_info));
         passes.push_back(new CollectTableInfo(&table_info, v1arch));
     }
 

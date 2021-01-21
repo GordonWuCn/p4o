@@ -840,4 +840,34 @@ bool CollectTempVariableAccess::preorder(const IR::P4Program*){
     return false;
 }
 
+
+
+bool CollectEgressCloneReservationInfo::preorder(const IR::MethodCallStatement*mcs){
+    if(auto path = mcs->methodCall->method->to<IR::PathExpression>()){
+        if(path->path->name.name == "harmony_e2e_clone_by_ip"){
+            if(collected){
+                BUG("harmony_e2e_clone_by_ip currently only support one harmony_e2e_clone_by_ip call");
+            }
+            auto args = mcs->methodCall->arguments;
+            auto copy_list = (*args)[0];
+            if(auto list_expression = copy_list->expression->to<IR::ListExpression>()){
+                for(auto it: list_expression->components){
+                    if(auto member = it->to<IR::Member>()){
+                        egress_clone_reserved->append(member->member.name);
+                    }
+                    else{
+                        std::cerr << it << std::endl;
+                        BUG("It is not a member");
+                    }
+                }
+            }
+            else{
+                std::cerr << copy_list->expression->node_type_name() << std::endl;
+                BUG("harmony_e2e_clone_by_ip's first arg is not a list expression");
+            }
+        }
+    }
+
+    return false;
+}
 } //namespace P4O
