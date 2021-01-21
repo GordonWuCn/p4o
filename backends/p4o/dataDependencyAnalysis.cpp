@@ -853,7 +853,10 @@ bool CollectEgressCloneReservationInfo::preorder(const IR::MethodCallStatement*m
             if(auto list_expression = copy_list->expression->to<IR::ListExpression>()){
                 for(auto it: list_expression->components){
                     if(auto member = it->to<IR::Member>()){
-                        egress_clone_reserved->append(member->member.name);
+                        auto tuple = new Util::JsonObject;
+                        tuple->emplace("name", member->member.name);
+                        tuple->emplace("size", member->type->to<IR::Type_Bits>()->size);
+                        egress_clone_reserved->append(tuple);
                     }
                     else{
                         std::cerr << it << std::endl;
