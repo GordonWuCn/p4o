@@ -304,6 +304,7 @@ public:
         collected = false;
     }
     bool preorder(const IR::MethodCallStatement*) override;
+    void postorder(const IR::P4Program*) override;
 
 };
 

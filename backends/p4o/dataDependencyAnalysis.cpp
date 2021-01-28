@@ -863,6 +863,7 @@ bool CollectEgressCloneReservationInfo::preorder(const IR::MethodCallStatement*m
                         BUG("It is not a member");
                     }
                 }
+                collected = true;
             }
             else{
                 std::cerr << copy_list->expression->node_type_name() << std::endl;
@@ -873,4 +874,10 @@ bool CollectEgressCloneReservationInfo::preorder(const IR::MethodCallStatement*m
 
     return false;
 }
+
+void CollectEgressCloneReservationInfo::postorder(const IR::P4Program*){
+    auto has_egress_clone = new Util::JsonValue(collected);
+    table_info->emplace("has_egress_clone", has_egress_clone);
+}
+
 } //namespace P4O
