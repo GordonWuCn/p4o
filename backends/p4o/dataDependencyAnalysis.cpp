@@ -849,7 +849,7 @@ bool CollectEgressCloneReservationInfo::preorder(const IR::MethodCallStatement*m
                 BUG("harmony_e2e_clone_by_ip currently only support one harmony_e2e_clone_by_ip call");
             }
             auto args = mcs->methodCall->arguments;
-            auto copy_list = (*args)[0];
+            auto copy_list = (*args)[1];
             if(auto list_expression = copy_list->expression->to<IR::ListExpression>()){
                 for(auto it: list_expression->components){
                     if(auto member = it->to<IR::Member>()){
