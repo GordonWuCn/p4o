@@ -179,10 +179,16 @@ bool ExpressionBreakdown::preorder(const IR::MethodCallExpression *mce){
     }
     else if(auto builtin = mi->to<P4::BuiltInMethod>()){
         if(builtin->name == "setValid"){
-
+            write_list.insert(builtin->appliedTo);
         }
         else if(builtin->name == "setInvalid"){
-
+            write_list.insert(builtin->appliedTo);
+        }
+        else if(builtin->name == "isValid") {
+            read_list.insert(builtin->appliedTo);
+        }
+        else if(builtin->name == "isInvalid") {
+            read_list.insert(builtin->appliedTo);
         }
         else{
             std::cerr << mce << std::endl;
@@ -250,6 +256,16 @@ bool ExpressionBreakdown::preorder(const IR::PathExpression *p){
 bool ExpressionBreakdown::preorder(const IR::LNot *lnot){
     sanity(lnot->expr);
     visit(lnot->expr);
+    return false;
+}
+bool ExpressionBreakdown::preorder(const IR::Cast *cast){
+    sanity(cast->expr);
+    visit(cast->expr);
+    return false;
+}
+bool ExpressionBreakdown::preorder(const IR::Slice *slice){
+    std::cerr << slice->e0 << std::endl;
+    assert(0);
     return false;
 }
 
@@ -704,6 +720,16 @@ bool CollectHeaderAccessInfo::preorder(const IR::Member* member){
                 else if(member->member == "setInvalid"){
                     header_set_invalid.push_back(member->expr);
                 }
+                else if(member->member == "isValid"){
+                    header_is_valid.push_back(member->expr);
+                }
+                else if(member->member == "isInvalid"){
+                    header_is_invalid.push_back(member->expr);
+                }
+                // else {
+                //     std::cerr << member << std::endl;
+                //     BUG("not implemented");
+                // }
             }
         }
     }
@@ -772,11 +798,37 @@ bool ExtractHeaderAccess::preorder(const IR::P4Program* ){
         }
         else BUG("header not in xx.xx format");
     }
+    for(auto header: header_access->header_is_valid){
+        for(auto header2 : header_access->header_set_valid){
+            if(header->equiv(*header2)){
+                header_is_valid->append(header->to<IR::Member>()->member.name);
+            }
+        }
+        for(auto header2 : header_access->header_set_invalid){
+            if(header->equiv(*header2)){
+                header_is_valid->append(header->to<IR::Member>()->member.name);
+            }
+        }
+    }
+    for(auto header: header_access->header_is_invalid){
+        for(auto header2 : header_access->header_set_valid){
+            if(header->equiv(*header2)){
+                header_is_invalid->append(header->to<IR::Member>()->member.name);
+            }
+        }
+        for(auto header2 : header_access->header_set_invalid){
+            if(header->equiv(*header2)){
+                header_is_invalid->append(header->to<IR::Member>()->member.name);
+            }
+        }
+    }
+
     return false;   
 }
 
 bool CollectTempVariableAccess::preorder(const IR::P4Program*){
     auto metadata = v1arch->ingress->type->applyParams->parameters[1]->type->to<IR::Type_Name>()->path->name.name;
+    auto header = v1arch->ingress->type->applyParams->parameters[0]->type->to<IR::Type_Name>()->path->name.name;
     for(auto it: *new_dependency_map){
         if(auto if_stmt = it.first->to<IR::IfStatement>()){
             auto table_name = if_stmt->ifTrue->to<IR::MethodCallStatement>()->methodCall->method->to<IR::Member>()->expr->to<IR::PathExpression>()->path->name.name;
@@ -795,6 +847,7 @@ bool CollectTempVariableAccess::preorder(const IR::P4Program*){
                                 metadata_obj->emplace("metadata_size", size);
                                 read_list->append(metadata_obj);
                             }
+                            else if(param->type->to<IR::Type_Name>()->path->name.name == header){}
                             else{
                                 std::cerr << param << std::endl;
                                 BUG("Not implemented");
@@ -821,6 +874,7 @@ bool CollectTempVariableAccess::preorder(const IR::P4Program*){
                                 metadata_obj->emplace("metadata_size", size);
                                 write_list->append(metadata_obj);
                             }
+                            else if(param->type->to<IR::Type_Name>()->path->name.name == header){}
                             else{
                                 std::cerr << param << std::endl;
                                 BUG("Not implemented");

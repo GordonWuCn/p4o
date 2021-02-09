@@ -4,6 +4,7 @@
 #include "frontends/common/resolveReferences/referenceMap.h"
 #include "backends/bmv2/simple_switch/simpleSwitch.h"
 #include "frontends/p4/cloner.h"
+#include "frontends/p4/toP4/toP4.h"
 #include <iostream>
 #include "lib/json.h"
 namespace P4O
@@ -93,7 +94,9 @@ class ExpressionBreakdown: public Inspector{
             n->is<IR::Constant>() or
             n->is<IR::Member>() or
             n->is<IR::PathExpression>() or
-            n->is<IR::LNot>()
+            n->is<IR::LNot>() or
+            n->is<IR::Cast>() or
+            n->is<IR::Slice>()
         ) return;
         std::cerr << n->node_type_name() << std::endl;
         BUG("not implemented");
@@ -113,6 +116,8 @@ public:
     bool preorder(const IR::Member *) override;
     bool preorder(const IR::PathExpression *) override;
     bool preorder(const IR::LNot *) override;
+    bool preorder(const IR::Cast *) override;
+    bool preorder(const IR::Slice *) override;
 
 };
 
@@ -204,6 +209,8 @@ public:
     IR::Vector<IR::Expression> header_accessed_in_parser;
     IR::Vector<IR::Expression> header_set_valid;
     IR::Vector<IR::Expression> header_set_invalid;
+    IR::Vector<IR::Expression> header_is_valid;
+    IR::Vector<IR::Expression> header_is_invalid;
     CollectHeaderAccessInfo(
         P4::ReferenceMap *refMap,
         P4::TypeMap *typeMap
@@ -221,6 +228,8 @@ class ExtractHeaderAccess: public Inspector{
     Util::JsonArray * header_field_accessed;
     Util::JsonArray * header_set_valid;
     Util::JsonArray * header_set_invalid;
+    Util::JsonArray * header_is_valid;
+    Util::JsonArray * header_is_invalid;
 public:
     ExtractHeaderAccess(
         std::map<const IR::Node *, P4O::DependencyInfo *> *dependency_map,
@@ -237,6 +246,8 @@ public:
             table_info->emplace("header_field_accessed", header_field_accessed);
             table_info->emplace("header_set_valid", header_set_valid);
             table_info->emplace("header_set_invalid", header_set_invalid);
+            table_info->emplace("header_is_invalid", header_is_invalid);
+            table_info->emplace("header_is_valid", header_is_valid);
         }
     bool preorder(const IR::P4Program*) override;
 };
